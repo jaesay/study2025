@@ -1,0 +1,11 @@
+### jaesukim 연결
+GET http://localhost:8080/sse/subscribe?userId=jaesukim
+
+### jaesukim2 연결
+GET http://localhost:8080/sse/subscribe?userId=jaesukim2
+
+### jaesukim 데이터 전달 및 연결 종료
+POST http://localhost:8080/sse/send?userId=jaesukim&message=Hello
+
+### ### jaesukim2 데이터 전달 및 연결 종료
+POST http://localhost:8080/sse/send?userId=jaesukim2&message=Hello

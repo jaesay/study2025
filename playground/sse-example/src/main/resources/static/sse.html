@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE 테스트</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+      #messages { margin-top: 20px; border: 1px solid #ccc; padding: 10px; min-height: 100px; }
+      button { margin-top: 10px; padding: 10px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h2>Server-Sent Events (SSE) 테스트</h2>
+
+<label for="userId">User ID:</label>
+<input type="text" id="userId" value="jaesukim">
+<button onclick="startSSE()">SSE 연결</button>
+<button onclick="stopSSE()">연결 종료</button>
+
+<h3>서버 메시지:</h3>
+<div id="messages"></div>
+
+<script>
+    let eventSource;
+
+    function startSSE() {
+        const userId = document.getElementById("userId").value;
+        if (!userId) {
+            alert("User ID를 입력하세요.");
+            return;
+        }
+
+        eventSource = new EventSource(`/sse/subscribe?userId=${userId}`);
+
+        eventSource.onmessage = function(event) {
+            const messages = document.getElementById("messages");
+            const message = document.createElement("p");
+            message.textContent = event.data;
+            messages.appendChild(message);
+        };
+
+        eventSource.onerror = function() {
+            console.log("SSE 연결이 종료되었습니다.");
+            stopSSE();
+        };
+
+        console.log("SSE 연결 시작:", userId);
+    }
+
+    function stopSSE() {
+        if (eventSource) {
+            eventSource.close();
+            console.log("SSE 연결 종료");
+        }
+    }
+</script>
+
+</body>
+</html>
