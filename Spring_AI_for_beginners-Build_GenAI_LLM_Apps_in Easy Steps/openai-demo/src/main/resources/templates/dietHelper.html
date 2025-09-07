@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Diet Helper</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding-top: 20px; text-align: center; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+        button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .response { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
+        .response h3 { color: #4CAF50; }
+        img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Diet Helper</h2>
+
+        <!-- Form to input prompt and upload files -->
+        <form th:action="@{/dietHelper}" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="prompt">Diet Query:</label>
+                <input type="text" id="prompt" name="prompt" placeholder="Enter your diet-related query" required>
+            </div>
+            <div class="form-group">
+                <label for="file1">Upload First Image:</label>
+                <input type="file" id="file1" name="file1" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label for="file2">Upload Second Image:</label>
+                <input type="file" id="file2" name="file2" accept="image/*" required>
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+
+        <!-- Display success or error message -->
+        <div class="response" th:if="${message}">
+            <p th:text="${message}"></p>
+        </div>
+
+        <!-- Display explanation and image preview if available -->
+        <div class="response" th:if="${suggestion}">
+            <h3>Diet Helper Suggestions:</h3>
+            <p th:text="${suggestion}"></p>
+        </div>
+    </div>
+</body>
+</html>

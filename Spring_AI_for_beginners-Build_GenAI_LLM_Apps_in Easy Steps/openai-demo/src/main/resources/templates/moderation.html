@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Content Moderation</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding-top: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; }
+        textarea { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd; }
+        button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .response { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
+        .response h3 { color: #4CAF50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Content Moderation</h2>
+
+        <!-- Form to input text for moderation -->
+        <form th:action="@{/moderation}" method="post">
+            <div class="form-group">
+                <label for="text">Enter Text to Moderate:</label>
+                <textarea id="text" name="text" rows="4" placeholder="Type text for moderation" required></textarea>
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+
+        <!-- Display moderation result if available -->
+        <div class="response" th:if="${response}">
+            <h3>Moderation Result:</h3>
+            
+            <!-- Assuming Moderation object has properties like flagged, categories, scores -->
+            <p><strong>Flagged:</strong> <span th:text="${response.flagged}">No</span></p>
+            
+            <div th:if="${response.categories != null}">
+                <h4>Categories:</h4>
+                <ul>
+                    <li th:each="category : ${response.categories}">
+                        <span th:text="${category}"></span>
+                    </li>
+                </ul>
+            </div>
+
+            <div th:if="${response.categoryScores != null}">
+                <h4>Scores:</h4>
+                <ul>
+                    <li th:each="score : ${response.categoryScores}">
+                        <span th:text="${score}"></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
