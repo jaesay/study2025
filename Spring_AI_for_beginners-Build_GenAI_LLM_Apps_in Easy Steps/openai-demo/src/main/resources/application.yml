@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: openai-demo
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o
+          max-tokens: 20
