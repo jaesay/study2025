@@ -1,19 +1,21 @@
 package com.jaesay.openaidemo.text;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.jaesay.openaidemo.services.OpenAiService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.jaesay.openaidemo.services.OpenAiService;
-
 @Controller
+@RequiredArgsConstructor
+@Slf4j
 public class AnswerAnyThingController {
 
-	@Autowired
-    private OpenAiService chatService;
+    private final OpenAiService chatService;
 
     @GetMapping("/showAskAnything")
     public String showAskAnything() {
@@ -22,7 +24,10 @@ public class AnswerAnyThingController {
 
     @PostMapping("/askAnything")
     public String askAnything(@RequestParam("question") String question, Model model) {
-
+        ChatResponse chatResponse = chatService.generateAnswer(question);
+        log.info(chatResponse.toString());
+        model.addAttribute("question", question);
+        model.addAttribute("answer", chatResponse.getResult().getOutput().getText());
         return "askAnything";
     }
 }
