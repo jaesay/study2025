@@ -1,6 +1,7 @@
 package com.jaesay.openaidemo.services;
 
 import com.jaesay.openaidemo.text.prompttemplate.dto.CountryCuisines;
+import java.util.List;
 import java.util.Map;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -62,4 +63,31 @@ public class OpenAiService {
     public float[] embed(String text) {
         return embeddingModel.embed(text);
     }
+
+    public double findSimilarity(String text1, String text2) {
+        List<float[]> response = embeddingModel.embed(List.of(text1, text2));
+        return cosineSimilarity(response.get(0), response.get(1));
+    }
+
+    private double cosineSimilarity(float[] vectorA, float[] vectorB) {
+        if (vectorA.length != vectorB.length) {
+            throw new IllegalArgumentException("Vectors must be of the same length");
+        }
+
+        // Initialize variables for dot product and magnitudes
+        double dotProduct = 0.0;
+        double magnitudeA = 0.0;
+        double magnitudeB = 0.0;
+
+        // Calculate dot product and magnitudes
+        for (int i = 0; i < vectorA.length; i++) {
+            dotProduct += vectorA[i] * vectorB[i];
+            magnitudeA += vectorA[i] * vectorA[i];
+            magnitudeB += vectorB[i] * vectorB[i];
+        }
+
+        // Calculate and return cosine similarity
+        return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
+    }
+
 }
