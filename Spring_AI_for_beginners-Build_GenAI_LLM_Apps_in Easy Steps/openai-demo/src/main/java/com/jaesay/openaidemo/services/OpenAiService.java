@@ -8,17 +8,20 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 
 @Service
 public class OpenAiService {
 
     private final ChatClient chatClient;
+    private final EmbeddingModel embeddingModel;
 
-    public OpenAiService(ChatClient.Builder builder) {
+    public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel) {
         this.chatClient = builder
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().build()).build())
             .build();
+        this.embeddingModel = embeddingModel;
     }
 
     public ChatResponse generateAnswer(String question) {
@@ -54,5 +57,9 @@ public class OpenAiService {
         Prompt prompt = promptTemplate.create(
             Map.of("country", country, "numCuisines", numCuisines, "language", language));
         return chatClient.prompt(prompt).call().entity(CountryCuisines.class);
+    }
+
+    public float[] embed(String text) {
+        return embeddingModel.embed(text);
     }
 }

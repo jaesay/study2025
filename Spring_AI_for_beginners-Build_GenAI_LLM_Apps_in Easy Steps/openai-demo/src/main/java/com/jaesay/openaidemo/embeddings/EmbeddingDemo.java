@@ -1,20 +1,19 @@
 package com.jaesay.openaidemo.embeddings;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.jaesay.openaidemo.services.OpenAiService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.jaesay.openaidemo.services.OpenAiService;
-
 @Controller
+@RequiredArgsConstructor
 public class EmbeddingDemo {
 
-	@Autowired
-	private OpenAiService service;
-	
+	private final OpenAiService service;
+
 	@GetMapping("/showEmbedding")
 	public String showEmbedDemo() {
 		return "embedDemo";
@@ -23,9 +22,9 @@ public class EmbeddingDemo {
 
 	@PostMapping("/embedding")
 	public String embed(@RequestParam String text,Model model) {
-		return "embedDemo";
-
+        float[] response = service.embed(text);
+        model.addAttribute("response", response);
+        return "embedDemo";
 	}
-	
 
 }
