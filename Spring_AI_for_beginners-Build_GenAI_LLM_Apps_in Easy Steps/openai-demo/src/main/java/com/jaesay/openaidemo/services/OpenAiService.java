@@ -1,5 +1,6 @@
 package com.jaesay.openaidemo.services;
 
+import com.jaesay.openaidemo.text.prompttemplate.dto.CountryCuisines;
 import java.util.Map;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -38,5 +39,20 @@ public class OpenAiService {
             Map.of("city", city, "month", month, "language", language, "budget", budget));
 
         return chatClient.prompt(prompt).call().chatResponse().getResult().getOutput().getText();
+    }
+
+    public CountryCuisines getCuisines(String country, String numCuisines, String language) {
+        PromptTemplate promptTemplate = new PromptTemplate("""
+            You are an expert in traditional cuisines.
+            You provide information about a specific dish from a specific country.
+            Answer the question: What is the traditional cuisine of {country}?
+            Return a list of {numCuisines} in {language}.
+            Avoid giving information about fictional places. If the country is fictional
+            or non-existent answer: I don't know.
+            """);
+
+        Prompt prompt = promptTemplate.create(
+            Map.of("country", country, "numCuisines", numCuisines, "language", language));
+        return chatClient.prompt(prompt).call().entity(CountryCuisines.class);
     }
 }
