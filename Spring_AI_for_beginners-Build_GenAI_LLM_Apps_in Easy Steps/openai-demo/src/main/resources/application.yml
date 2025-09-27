@@ -2,8 +2,12 @@ spring:
   application:
     name: openai-demo
   ai:
-    openai:
+      openai:
       api-key: ${OPENAI_API_KEY:}
+      vectorstore:
+          chroma:
+              initialize-schema: true
+              collection-name: demo
 #      chat:
 #        options:
 #          model: gpt-4o
