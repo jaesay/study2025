@@ -35,7 +35,7 @@
             <ul class="job-list">
                 <!-- Loop through each document in the response -->
                 <li th:each="document : ${response}" class="job-item">
-                    <span class="job-title" th:text="${document.content}">Job Description</span>
+                    <span class="job-title" th:text="${document.text}">Job Description</span>
                 </li>
             </ul>
         </div>

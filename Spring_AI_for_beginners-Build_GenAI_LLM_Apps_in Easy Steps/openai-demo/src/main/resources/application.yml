@@ -3,7 +3,7 @@ spring:
     name: openai-demo
   ai:
       openai:
-      api-key: ${OPENAI_API_KEY:}
+        api-key: ${OPENAI_API_KEY:}
       vectorstore:
           chroma:
               initialize-schema: true

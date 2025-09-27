@@ -9,7 +9,9 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,12 +19,14 @@ public class OpenAiService {
 
     private final ChatClient chatClient;
     private final EmbeddingModel embeddingModel;
+    private final VectorStore vectorStore;
 
-    public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel) {
+    public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel, VectorStore vectorStore) {
         this.chatClient = builder
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().build()).build())
             .build();
         this.embeddingModel = embeddingModel;
+        this.vectorStore = vectorStore;
     }
 
     public ChatResponse generateAnswer(String question) {
@@ -90,4 +94,7 @@ public class OpenAiService {
         return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
     }
 
+    public List<Document> searchJobs(String query) {
+        return vectorStore.similaritySearch(query);
+    }
 }
