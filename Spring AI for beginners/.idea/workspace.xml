@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="b021da6b-49ca-4d4c-b511-53faf6731ef3" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/gradle/wrapper/gradle-wrapper.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/gradlew" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/gradlew.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/settings.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/src/main/java/com/jaesay/ollamademo/AnswerAnyThingController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/src/main/java/com/jaesay/ollamademo/OllamaDemoApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/src/main/java/com/jaesay/ollamademo/OllamaService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/src/main/resources/templates/askAnything.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/ollama-demo/src/test/java/com/jaesay/ollamademo/OllamaDemoApplicationTests.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/CLAUDE.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/gradle/wrapper/gradle-wrapper.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/gradlew" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/gradlew.bat" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/settings.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/DataInitializer.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/OpenaiDemoApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/embeddings/EmbeddingDemo.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/embeddings/JobSearchHelper.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/embeddings/SimilarityFinder.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/imageprocessing/DietHelperController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/imageprocessing/ImageAnalyzerController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/imageprocessing/ImageGenerationController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/moderations/ModerationController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/rag/ProductDataBot.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/services/OpenAiService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/speech/SpeechToTextController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/speech/TextToSpeechController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/text/AnswerAnyThingController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/text/AnswerAnyThingStreamingController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/text/prompttemplate/CuisineHelperController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/text/prompttemplate/TravelGuideController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/text/prompttemplate/dto/CountryCuisines.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/tools/WeatherAgentController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/java/com/jaesay/openaidemo/tools/WeatherTools.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/application.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/job_listings.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/product-data.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/askAnything.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/cuisineHelper.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/dietHelper.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/embedDemo.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/imageAnalyzer.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/imageGenerator.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/jobSearchHelper.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/moderation.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/productDataBot.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/similarityFinder.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/speechToText.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/textToSpeech.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/travelGuide.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/main/resources/templates/weatherTool.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Spring_AI_for_beginners-Build_GenAI_LLM_Apps_in_Easy_Steps/openai-demo/src/test/java/com/jaesay/openaidemo/OpenaiDemoApplicationTests.java" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 3
+}]]></component>
+  <component name="ProjectId" id="33XszfXjDiXwprb6spyiJQpeyEq" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/jaesukim/personal_workspace/study2025/Spring AI for beginners",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.25557.131" />
+        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-IU-252.25557.131" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b021da6b-49ca-4d4c-b511-53faf6731ef3" name="Changes" comment="" />
+      <created>1759475015795</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1759475015795</updated>
+      <workItem from="1759475016988" duration="3000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
