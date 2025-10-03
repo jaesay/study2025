@@ -12,6 +12,10 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.image.ImagePrompt;
+import org.springframework.ai.image.ImageResponse;
+import org.springframework.ai.openai.OpenAiImageModel;
+import org.springframework.ai.openai.OpenAiImageOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
@@ -22,13 +26,16 @@ public class OpenAiService {
     private final ChatClient chatClient;
     private final EmbeddingModel embeddingModel;
     private final VectorStore vectorStore;
+    private final OpenAiImageModel openAiImageModel;
 
-    public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel, VectorStore vectorStore) {
+    public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel, VectorStore vectorStore,
+        OpenAiImageModel openAiImageModel) {
         this.chatClient = builder
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().build()).build())
             .build();
         this.embeddingModel = embeddingModel;
         this.vectorStore = vectorStore;
+        this.openAiImageModel = openAiImageModel;
     }
 
     public ChatResponse generateAnswer(String question) {
@@ -106,5 +113,21 @@ public class OpenAiService {
 
     public String answer(String query) {
         return chatClient.prompt(query).advisors(new QuestionAnswerAdvisor(vectorStore)).call().content();
+    }
+
+    public String generateImage(String prompt) {
+        ImageResponse response = openAiImageModel.call(
+            new ImagePrompt(
+                prompt,
+                OpenAiImageOptions.builder()
+                    .quality("hd")
+                    .height(1024)
+                    .width(1024)
+                    .N(1)
+                    .build()
+            )
+        );
+
+        return response.getResult().getOutput().getUrl();
     }
 }
