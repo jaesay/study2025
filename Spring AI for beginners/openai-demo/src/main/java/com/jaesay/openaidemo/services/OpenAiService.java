@@ -18,7 +18,10 @@ import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.OpenAiImageOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
 
 @Service
 public class OpenAiService {
@@ -137,5 +140,22 @@ public class OpenAiService {
         );
 
         return response.getResult().getOutput().getUrl();
+    }
+
+    public String explainImage(String prompt, String path) {
+        return chatClient.prompt()
+            .user(u ->
+                u.text(prompt)
+                    .media(MimeTypeUtils.IMAGE_JPEG, new FileSystemResource(path))
+            ).call().content();
+    }
+
+    public String getDietAdvice(String prompt, String path1, String path2) {
+        return chatClient.prompt()
+            .system("You are a helpful assistant that can provide diet advice based on images.")
+            .user(u -> u.text(prompt)
+                .media(MimeTypeUtils.IMAGE_JPEG, new FileSystemResource(path1))
+                .media(MimeTypeUtils.IMAGE_JPEG, new FileSystemResource(path2))
+            ).call().content();
     }
 }
