@@ -15,6 +15,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
+import org.springframework.ai.openai.OpenAiAudioSpeechModel;
 import org.springframework.ai.openai.OpenAiAudioTranscriptionModel;
 import org.springframework.ai.openai.OpenAiAudioTranscriptionOptions;
 import org.springframework.ai.openai.OpenAiImageModel;
@@ -23,6 +24,7 @@ import org.springframework.ai.openai.api.OpenAiAudioApi.TranscriptResponseFormat
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 
@@ -34,9 +36,11 @@ public class OpenAiService {
     private final VectorStore vectorStore;
     private final OpenAiImageModel openAiImageModel;
     private final OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel;
+    private final OpenAiAudioSpeechModel openAiAudioSpeechModel;
 
     public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel, VectorStore vectorStore,
-        OpenAiImageModel openAiImageModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel) {
+        OpenAiImageModel openAiImageModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel,
+        OpenAiAudioSpeechModel openAiAudioSpeechModel) {
         this.chatClient = builder
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().build()).build())
             .build();
@@ -44,6 +48,7 @@ public class OpenAiService {
         this.vectorStore = vectorStore;
         this.openAiImageModel = openAiImageModel;
         this.openAiAudioTranscriptionModel = openAiAudioTranscriptionModel;
+        this.openAiAudioSpeechModel = openAiAudioSpeechModel;
     }
 
     public ChatResponse generateAnswer(String question) {
@@ -171,5 +176,9 @@ public class OpenAiService {
             .build();
         AudioTranscriptionPrompt audioTranscriptionPrompt = new AudioTranscriptionPrompt(new FileSystemResource(path), options);
         return openAiAudioTranscriptionModel.call(audioTranscriptionPrompt).getResult().getOutput();
+    }
+
+    public byte[] textToSpeech(String text) {
+        return openAiAudioSpeechModel.call(text);
     }
 }

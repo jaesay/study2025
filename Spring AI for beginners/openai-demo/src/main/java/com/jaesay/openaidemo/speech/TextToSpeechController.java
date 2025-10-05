@@ -2,7 +2,10 @@ package com.jaesay.openaidemo.speech;
 
 import java.io.IOException;
 
+import java.net.http.HttpResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +27,10 @@ public class TextToSpeechController {
 
 	@GetMapping("/textToSpeech")
 	public ResponseEntity<byte[]> streamAudio(@RequestParam String text) {
-		return null;
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(HttpHeaders.CONTENT_TYPE, "audio/mpeg");
+        httpHeaders.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=output.mp3");
+
+        return new ResponseEntity<>(service.textToSpeech(text), httpHeaders, HttpStatus.OK);
 	}
 }
