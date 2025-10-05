@@ -16,11 +16,15 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
+import org.springframework.ai.moderation.Moderation;
+import org.springframework.ai.moderation.ModerationPrompt;
+import org.springframework.ai.moderation.ModerationResult;
 import org.springframework.ai.openai.OpenAiAudioSpeechModel;
 import org.springframework.ai.openai.OpenAiAudioTranscriptionModel;
 import org.springframework.ai.openai.OpenAiAudioTranscriptionOptions;
 import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.OpenAiImageOptions;
+import org.springframework.ai.openai.OpenAiModerationModel;
 import org.springframework.ai.openai.api.OpenAiAudioApi.TranscriptResponseFormat;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -38,10 +42,11 @@ public class OpenAiService {
     private final OpenAiImageModel openAiImageModel;
     private final OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel;
     private final OpenAiAudioSpeechModel openAiAudioSpeechModel;
+    private final OpenAiModerationModel openAiModerationModel;
 
     public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel, VectorStore vectorStore,
         OpenAiImageModel openAiImageModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel,
-        OpenAiAudioSpeechModel openAiAudioSpeechModel) {
+        OpenAiAudioSpeechModel openAiAudioSpeechModel, OpenAiModerationModel openAiModerationModel) {
         this.chatClient = builder
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().build()).build())
             .build();
@@ -50,6 +55,7 @@ public class OpenAiService {
         this.openAiImageModel = openAiImageModel;
         this.openAiAudioTranscriptionModel = openAiAudioTranscriptionModel;
         this.openAiAudioSpeechModel = openAiAudioSpeechModel;
+        this.openAiModerationModel = openAiModerationModel;
     }
 
     public ChatResponse generateAnswer(String question) {
@@ -185,5 +191,10 @@ public class OpenAiService {
 
     public String callAgent(String query) {
         return chatClient.prompt(query).tools(new WeatherTools()).call().content();
+    }
+
+    public ModerationResult moderate(String text) {
+        Moderation moderation = openAiModerationModel.call(new ModerationPrompt(text)).getResult().getOutput();
+        return moderation.getResults().getFirst();
     }
 }
