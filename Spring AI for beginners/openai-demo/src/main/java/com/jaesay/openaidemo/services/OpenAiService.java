@@ -1,6 +1,7 @@
 package com.jaesay.openaidemo.services;
 
 import com.jaesay.openaidemo.text.prompttemplate.dto.CountryCuisines;
+import com.jaesay.openaidemo.tools.WeatherTools;
 import java.util.List;
 import java.util.Map;
 import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
@@ -180,5 +181,9 @@ public class OpenAiService {
 
     public byte[] textToSpeech(String text) {
         return openAiAudioSpeechModel.call(text);
+    }
+
+    public String callAgent(String query) {
+        return chatClient.prompt(query).tools(new WeatherTools()).call().content();
     }
 }
