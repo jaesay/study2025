@@ -32,6 +32,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
+import reactor.core.publisher.Flux;
 
 @Service
 public class OpenAiService {
@@ -141,6 +142,10 @@ public class OpenAiService {
 
     public String answer(String query) {
         return chatClient.prompt(query).advisors(new QuestionAnswerAdvisor(vectorStore)).call().content();
+    }
+
+    public Flux<String> streamAnswer(String message) {
+        return chatClient.prompt(message).stream().content();
     }
 
     public String generateImage(String prompt) {
