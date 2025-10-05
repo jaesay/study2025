@@ -3,6 +3,7 @@ package com.jaesay.openaidemo.services;
 import com.jaesay.openaidemo.text.prompttemplate.dto.CountryCuisines;
 import java.util.List;
 import java.util.Map;
+import org.springframework.ai.audio.transcription.AudioTranscriptionPrompt;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
@@ -14,13 +15,13 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.image.ImagePrompt;
 import org.springframework.ai.image.ImageResponse;
+import org.springframework.ai.openai.OpenAiAudioTranscriptionModel;
 import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.OpenAiImageOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 
 @Service
@@ -30,15 +31,17 @@ public class OpenAiService {
     private final EmbeddingModel embeddingModel;
     private final VectorStore vectorStore;
     private final OpenAiImageModel openAiImageModel;
+    private final OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel;
 
     public OpenAiService(ChatClient.Builder builder, EmbeddingModel embeddingModel, VectorStore vectorStore,
-        OpenAiImageModel openAiImageModel) {
+        OpenAiImageModel openAiImageModel, OpenAiAudioTranscriptionModel openAiAudioTranscriptionModel) {
         this.chatClient = builder
             .defaultAdvisors(MessageChatMemoryAdvisor.builder(MessageWindowChatMemory.builder().build()).build())
             .build();
         this.embeddingModel = embeddingModel;
         this.vectorStore = vectorStore;
         this.openAiImageModel = openAiImageModel;
+        this.openAiAudioTranscriptionModel = openAiAudioTranscriptionModel;
     }
 
     public ChatResponse generateAnswer(String question) {
@@ -157,5 +160,10 @@ public class OpenAiService {
                 .media(MimeTypeUtils.IMAGE_JPEG, new FileSystemResource(path1))
                 .media(MimeTypeUtils.IMAGE_JPEG, new FileSystemResource(path2))
             ).call().content();
+    }
+
+    public String speechToText(String path) {
+        AudioTranscriptionPrompt audioTranscriptionPrompt = new AudioTranscriptionPrompt(new FileSystemResource(path));
+        return openAiAudioTranscriptionModel.call(audioTranscriptionPrompt).getResult().getOutput();
     }
 }

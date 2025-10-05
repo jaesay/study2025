@@ -1,6 +1,7 @@
 spring:
   application:
     name: openai-demo
+
   ai:
       openai:
         api-key: ${OPENAI_API_KEY:}
@@ -8,6 +9,9 @@ spring:
           chroma:
               initialize-schema: true
               collection-name: demo
+
+  servlet.multipart:
+      max-file-size: 10MB
 #      chat:
 #        options:
 #          model: gpt-4o
