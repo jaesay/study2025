@@ -1,0 +1,208 @@
+{
+  "name": "이메일 작성 도우미",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "16c28fa4-e58d-4486-986d-a93d04189ab2",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cBlqPw8iYmtPHFqg",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        144,
+        208
+      ],
+      "id": "5576c4f2-14a6-4a0f-8774-6a0a67098436",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "wNiD0EwLelpyE72g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"need_reply\": {\n\t\t\t\"type\": \"boolean\"\n\t\t}\n\t}\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        208
+      ],
+      "id": "59545909-5332-4af0-9a16-3f0de58ea0fb",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=아래 이메일을 보고 답장이 필요한 지 확인해주세요. \n\n이메일 내용:\n{{ $json.snippet }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "당신의 업무는 이메일에 답장을 해야하는지 말아야 하는지 결정하는 것입니다. 답장이 필요하다면 true, 답장이 필요없으면 false 를 리턴해주세요."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d274d05c-3979-437c-8d46-4a871b4f00e2",
+      "name": "답장 여부 판단"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f9d25234-fa1e-4a75-b9ef-82ec7d463152",
+              "leftValue": "={{ $json.output.need_reply }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "db42fd4f-0976-4ef3-8cd2-bec1092203e6",
+      "name": "답장해야 한다면?"
+    },
+    {
+      "parameters": {
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        768,
+        -96
+      ],
+      "id": "c403e573-db62-422c-97f0-d4aa5a7cef22",
+      "name": "이메일 답장 작성"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "답장 여부 판단",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "답장 여부 판단",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "답장 여부 판단",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "답장 여부 판단": {
+      "main": [
+        [
+          {
+            "node": "답장해야 한다면?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "답장해야 한다면?": {
+      "main": [
+        [
+          {
+            "node": "이메일 답장 작성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cca95ea1-aaec-4d36-961e-80b5ee9c5137",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3bdfb9017b4b4725cc8e39f859c9612d2f76448bfc2cd8d87fa50f3184384837"
+  },
+  "id": "7dLXe844fJWCj6JO",
+  "tags": []
+}
