@@ -1,0 +1,26 @@
+### Redis Lock Registry API 테스트
+
+# 환경 변수 설정
+@baseUrl = http://localhost:8080
+@userId = user1
+@productId = product1
+
+### 1. 단일 주문 처리 테스트
+POST {{baseUrl}}/api/orders/process?userId={{userId}}&productId={{productId}}&quantity=2
+
+### 2. 다른 사용자로 주문 처리 (락 키가 달라서 동시 실행 가능)
+POST {{baseUrl}}/api/orders/process?userId=user2&productId={{productId}}&quantity=1
+
+### 3. 같은 사용자, 같은 상품으로 주문 처리 (락으로 인해 순차 실행)
+POST {{baseUrl}}/api/orders/process?userId={{userId}}&productId={{productId}}&quantity=3
+
+### 4. 동시성 테스트 (3개 스레드가 동시에 실행되지만 락으로 인해 순차 처리)
+GET {{baseUrl}}/api/orders/test-concurrent?userId={{userId}}&productId={{productId}}
+
+### 5. 다른 상품에 대한 동시성 테스트 (락 키가 달라서 독립적으로 실행)
+GET {{baseUrl}}/api/orders/test-concurrent?userId={{userId}}&productId=product2
+
+### 6. 수량이 많은 주문 테스트
+POST {{baseUrl}}/api/orders/process?userId={{userId}}&productId=product3&quantity=10
+
+###

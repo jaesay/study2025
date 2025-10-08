@@ -101,17 +101,116 @@ public class RedisLockConfig {
 - `"locks:"`: Redis 키 접두사 (락 키가 `locks:order-123` 형태로 저장됨)
 - `60000`: 락 만료 시간 60초 (데드락 방지, 애플리케이션 장애 시 자동 해제)
 
+## 실제 사용 예제
+
+### 1. 주문 처리 서비스 (`OrderService.java`)
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class OrderService {
+    
+    private final RedisLockRegistry redisLockRegistry;
+    
+    public String processOrder(String userId, String productId, int quantity) {
+        String lockKey = "order:" + userId + ":" + productId;
+        Lock lock = redisLockRegistry.obtain(lockKey);
+        
+        try {
+            lock.lock();  // 분산 락 획득
+            log.info("락 획득 완료: {}", lockKey);
+            
+            // 비즈니스 로직 실행 (2초 시뮬레이션)
+            Thread.sleep(2000);
+            
+            String orderId = "ORD-" + System.currentTimeMillis();
+            return "주문 완료: " + orderId;
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "주문 처리 실패: 인터럽트";
+        } finally {
+            lock.unlock();  // 반드시 락 해제
+            log.info("락 해제 완료: {}", lockKey);
+        }
+    }
+}
+```
+
+### 2. REST API 컨트롤러 (`OrderController.java`)
+```java
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+public class OrderController {
+    
+    private final OrderService orderService;
+    
+    @PostMapping("/process")
+    public String processOrder(
+            @RequestParam String userId,
+            @RequestParam String productId,
+            @RequestParam(defaultValue = "1") int quantity) {
+        
+        return orderService.processOrder(userId, productId, quantity);
+    }
+    
+    @GetMapping("/test-concurrent")
+    public String testConcurrentOrders(@RequestParam String userId, @RequestParam String productId) {
+        // 동시성 테스트를 위한 여러 스레드 실행
+        for (int i = 0; i < 3; i++) {
+            final int threadNum = i + 1;
+            new Thread(() -> {
+                String result = orderService.processOrder(userId, productId, threadNum);
+                System.out.println("Thread " + threadNum + " 결과: " + result);
+            }).start();
+        }
+        
+        return "동시성 테스트 시작 - 로그를 확인하세요";
+    }
+}
+```
+
+## 테스트 방법
+
+### 1. 애플리케이션 실행
+```bash
+# Redis 서버 시작
+podman-compose up -d
+
+# Spring Boot 애플리케이션 실행
+./gradlew bootRun
+```
+
+### 2. API 테스트
+
+**단일 주문 처리:**
+```bash
+curl -X POST "http://localhost:8080/api/orders/process?userId=user1&productId=product1&quantity=2"
+```
+
+**동시성 테스트:**
+```bash
+curl "http://localhost:8080/api/orders/test-concurrent?userId=user1&productId=product1"
+```
+
+### 3. 로그 확인 포인트
+- `락 획득 완료`: 분산 락이 성공적으로 획득됨
+- `락 해제 완료`: 작업 완료 후 락이 정상 해제됨
+- 동시 요청 시 순차적으로 처리되는지 확인
+
 ## 학습 진행 상황
 - [x] 프로젝트 분석 및 의존성 추가
 - [x] Redis 연결 설정
-- [ ] RedisLockRegistry Bean 구성 (현재 진행 중)
-- [ ] 실제 사용 예제 구현
-- [ ] 테스트 케이스 작성
+- [x] RedisLockRegistry Bean 구성
+- [x] 실제 사용 예제 구현
+- [x] REST API 및 동시성 테스트 구현
 
-## 다음 단계
-1. RedisLockRegistry Bean 설정 완료
-2. 분산 락을 사용하는 서비스 클래스 구현
-3. 동시성 테스트 및 검증
+## 주요 학습 포인트
+1. **Lock 패턴**: `try-finally`로 안전한 락 관리
+2. **락 키 설계**: 비즈니스 로직에 맞는 고유 키 생성
+3. **동시성 제어**: 같은 리소스에 대한 동시 접근 방지
+4. **자동 만료**: 60초 후 자동 해제로 데드락 방지
 
 ---
 *이 문서는 학습 과정에서 지속적으로 업데이트됩니다.*
