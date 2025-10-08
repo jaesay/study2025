@@ -270,5 +270,118 @@ try {
 4. 인터럽트 상태 복원 후 깔끔하게 종료
 ```
 
+## 어노테이션 기반 접근법 (V2)
+
+### 1. @DistributedLock 어노테이션
+```java
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface DistributedLock {
+    String key();                                    // SpEL 표현식으로 락 키 생성
+    long waitTime() default 3000L;                   // 락 획득 대기 시간 (ms)
+    long leaseTime() default 30000L;                 // 락 리스 시간 (ms)
+    String failureMessage() default "분산 락 획득에 실패했습니다";
+}
+```
+
+### 2. AOP Aspect를 통한 자동 락 처리
+```java
+@Aspect
+@Component
+public class DistributedLockAspect {
+    @Around("@annotation(distributedLock)")
+    public Object around(ProceedingJoinPoint joinPoint, DistributedLock distributedLock) {
+        // SpEL로 락 키 생성 → 락 획득 → 메서드 실행 → 락 해제
+    }
+}
+```
+
+### 3. OrderServiceV2 - 깔끔한 비즈니스 로직
+```java
+@Service
+public class OrderServiceV2 {
+    
+    @DistributedLock(
+        key = "'order:' + #userId + ':' + #productId",
+        waitTime = 3000L,
+        failureMessage = "주문 처리 중입니다. 잠시 후 다시 시도해주세요."
+    )
+    public String processOrder(String userId, String productId, int quantity) {
+        // 순수한 비즈니스 로직만!
+        log.info("주문 처리 시작 (V2): userId={}, productId={}, quantity={}", userId, productId, quantity);
+        Thread.sleep(2000);  // 비즈니스 로직 시뮬레이션
+        return "주문 완료 (V2): " + orderId;
+    }
+}
+```
+
+### 4. V1 vs V2 비교
+
+| 측면 | V1 (수동 락 관리) | V2 (어노테이션 기반) |
+|------|------------------|---------------------|
+| **코드 길이** | ~20줄 (락 관리 포함) | ~10줄 (비즈니스 로직만) |
+| **가독성** | 락 코드가 비즈니스 로직과 섞임 | 순수한 비즈니스 로직 |
+| **유지보수** | 락 관리 코드 중복 | 중앙화된 락 처리 |
+| **예외 처리** | 수동으로 모든 케이스 처리 | Aspect에서 일관성 있게 처리 |
+| **설정 유연성** | 하드코딩된 값들 | 어노테이션 파라미터로 설정 |
+
+## 실제 동작 시나리오 분석
+
+### 동시성 테스트 로그 예시
+```bash
+curl "http://localhost:8080/api/orders/v2/test-concurrent?userId=user1&productId=product1"
+```
+
+**로그 타임라인:**
+```
+00:38:16.398 Thread-5: 분산 락 획득 완료: order:user1:product1
+00:38:16.398 Thread-5: 주문 처리 시작 (V2): quantity=2
+00:38:18.404 Thread-5: 주문 처리 완료 (V2): ORD-V2-1759937898404  
+00:38:18.409 Thread-5: 분산 락 해제 완료: order:user1:product1
+
+00:38:18.412 Thread-6: 분산 락 획득 완료: order:user1:product1  ← Thread-5 해제 직후
+00:38:18.412 Thread-6: 주문 처리 시작 (V2): quantity=3
+00:38:20.418 Thread-6: 주문 처리 완료 (V2): ORD-V2-1759937900417
+00:38:20.425 Thread-6: 분산 락 해제 완료: order:user1:product1
+
+00:38:19.401 Thread-4: 분산 락 획득 실패: order:user1:product1  ← 3초 대기 후 타임아웃
+Thread-4 실패: 주문 처리 중입니다. 잠시 후 다시 시도해주세요.
+```
+
+### 시나리오 해석
+
+**1. 정상적인 순차 처리**
+- Thread-5: 16.398 ~ 18.409 (약 2초간 작업)
+- Thread-6: 18.412 ~ 20.425 (Thread-5 완료 직후 시작)
+
+**2. 대기 시간 초과로 인한 실패**
+- Thread-4: 16.398부터 대기 시작
+- `waitTime = 3000L` 설정에 따라 19.401에 타임아웃
+- Thread-6가 아직 작업 중이므로 락 획득 불가
+
+**3. 이런 동작이 바람직한 이유**
+- ✅ **중복 주문 방지**: 같은 사용자의 같은 상품 주문이 동시에 처리되지 않음
+- ✅ **시스템 안정성**: 무한 대기하지 않고 적절한 시간 후 실패
+- ✅ **사용자 경험**: 명확한 에러 메시지로 재시도 유도
+- ✅ **리소스 보호**: 과도한 동시 요청으로부터 시스템 보호
+
+### 다양한 락 키 패턴의 효과
+
+**동일한 락 키 (순차 처리):**
+```java
+// 모두 같은 락 키 "order:user1:product1"
+processOrder("user1", "product1", 1);  // Thread-1
+processOrder("user1", "product1", 2);  // Thread-2 (대기)
+processOrder("user1", "product1", 3);  // Thread-3 (대기 또는 실패)
+```
+
+**다른 락 키 (병렬 처리):**
+```java
+// 각각 다른 락 키
+processOrder("user1", "product1", 1);  // "order:user1:product1"
+processOrder("user2", "product1", 1);  // "order:user2:product1" (병렬 처리)
+processOrder("user1", "product2", 1);  // "order:user1:product2" (병렬 처리)
+```
+
 ---
 *이 문서는 학습 과정에서 지속적으로 업데이트됩니다.*
