@@ -1,5 +1,44 @@
 # RedisLockRegistry 설정 가이드
 
+## RedisLockRegistry란?
+
+**RedisLockRegistry**는 **Spring Integration** 프로젝트의 일부로, Redis를 활용한 분산 락(Distributed Lock) 구현체입니다.
+
+### 프로젝트 관계 및 위치
+```
+Spring Portfolio
+├── Spring Framework (Core)
+├── Spring Boot (Auto-configuration)
+├── Spring Data Redis (Redis 데이터 접근)
+│   ├── Lettuce (기본 Redis 클라이언트)
+│   └── Jedis (대안 Redis 클라이언트)
+└── Spring Integration (메시징 및 통합)
+    └── RedisLockRegistry (분산 락 구현체) ← 여기!
+```
+
+### 주요 특징
+- ✅ **Spring 공식 프로젝트**: VMware(구 Pivotal)에서 공식 관리
+- ✅ **Spring 생태계 완벽 통합**: 설정, DI, 예외 처리 등 자동화
+- ✅ **Lettuce 기반**: Spring Data Redis의 기본 클라이언트 활용
+- ✅ **간단한 API**: Java의 `java.util.concurrent.locks.Lock` 인터페이스 구현
+- ⚠️ **Watchdog 설정 필요**: Spring Integration 6.4+에서 지원하지만 TaskScheduler 명시적 설정 필요
+
+### 다른 분산 락 솔루션과의 비교
+
+| 특징 | RedisLockRegistry | Redisson | Zookeeper |
+|------|------------------|----------|-----------|
+| **관리 주체** | Spring 공식 | Redisson 팀 | Apache |
+| **Spring 통합** | 완벽 통합 | 수동 설정 필요 | 수동 설정 필요 |
+| **리스 연장** | TaskScheduler 설정 시 가능 | Watchdog 자동 연장 (기본) | 세션 기반 |
+| **복잡도** | 간단 | 중간 | 복잡 |
+| **의존성** | Spring Integration | Redisson | Zookeeper |
+
+### 언제 사용하면 좋을까?
+- ✅ Spring 기반 애플리케이션
+- ✅ 이미 Redis를 사용 중인 환경
+- ✅ 간단하고 예측 가능한 작업 시간
+- ✅ 학습 및 프로토타이핑
+
 ## 개요
 Spring Integration의 RedisLockRegistry를 사용하여 분산 환경에서 Redis 기반 락을 구현하는 방법을 학습합니다.
 
@@ -382,6 +421,295 @@ processOrder("user1", "product1", 1);  // "order:user1:product1"
 processOrder("user2", "product1", 1);  // "order:user2:product1" (병렬 처리)
 processOrder("user1", "product2", 1);  // "order:user1:product2" (병렬 처리)
 ```
+
+## Watchdog 기능 활용 가이드
+
+### Watchdog가 필요한 대표적인 활용처
+
+#### 🚨 Watchdog 필수 케이스
+
+**1. 배치 처리 작업**
+```java
+@DistributedLock(key = "'batch:' + #jobType + ':' + #date")
+public void processDailyBatch(String jobType, String date) {
+    // 데이터량에 따라 1분~3시간까지 소요 가능
+    List<Order> orders = orderRepository.findByDate(date);
+    
+    for (Order order : orders) {
+        processOrder(order);
+        updateInventory(order);
+        sendNotification(order);
+    }
+}
+```
+
+**2. 파일 업로드/다운로드**
+```java
+@DistributedLock(key = "'file:' + #fileId")
+public void processLargeFile(String fileId) {
+    // 파일 크기에 따라 수초~수시간 소요
+    File file = downloadFromS3(fileId);
+    processFile(file);          // 이미지 리사이징, 비디오 인코딩 등
+    uploadToDestination(file);
+}
+```
+
+**3. 외부 API 호출이 많은 작업**
+```java
+@DistributedLock(key = "'integration:' + #customerId")
+public void syncCustomerData(String customerId) {
+    // 여러 외부 시스템과 통신 (응답 시간 예측 불가)
+    CustomerInfo info = crmService.getCustomer(customerId);     // 1-10초
+    PaymentInfo payment = paymentService.getHistory(customerId); // 1-30초
+    ShippingInfo shipping = shippingService.getStatus(customerId); // 1-60초
+    
+    mergeAndSave(info, payment, shipping);
+}
+```
+
+**4. 데이터 마이그레이션**
+```java
+@DistributedLock(key = "'migration:' + #tableName")
+public void migrateTable(String tableName) {
+    // 테이블 크기에 따라 몇 분~몇 시간 소요
+    List<OldEntity> oldData = oldRepository.findAll();
+    
+    for (OldEntity old : oldData) {
+        NewEntity newEntity = convertToNew(old);
+        newRepository.save(newEntity);
+    }
+}
+```
+
+**5. 리포트 생성**
+```java
+@DistributedLock(key = "'report:' + #reportType + ':' + #period")
+public void generateReport(String reportType, String period) {
+    // 복잡한 집계 쿼리와 계산 (1-30분 소요)
+    ReportData data = analyticsService.aggregateData(period);
+    Chart chart = chartService.generateChart(data);
+    PDF pdf = pdfService.createReport(chart);
+    emailService.sendReport(pdf);
+}
+```
+
+#### ✅ Watchdog 불필요 케이스
+
+**1. 간단한 CRUD 작업**
+```java
+@DistributedLock(key = "'order:' + #userId + ':' + #productId")
+public String createOrder(String userId, String productId) {
+    // 예측 가능한 짧은 작업 (1-3초)
+    Order order = new Order(userId, productId);
+    return orderRepository.save(order).getId();
+}
+```
+
+**2. 캐시 업데이트**
+```java
+@DistributedLock(key = "'cache:' + #key")
+public void updateCache(String key, Object value) {
+    // 매우 빠른 작업 (밀리초 단위)
+    redisTemplate.opsForValue().set(key, value);
+}
+```
+
+**3. 중복 방지용 락**
+```java
+@DistributedLock(key = "'duplicate:' + #requestId")
+public String processPayment(String requestId, PaymentInfo info) {
+    // 중복 처리 방지가 목적 (처리 시간 < 5초)
+    return paymentService.process(info);
+}
+```
+
+### Watchdog 활성화 방법
+
+**TaskScheduler 설정:**
+```java
+@Configuration
+public class RedisLockConfig {
+    
+    @Bean
+    public TaskScheduler lockRenewalScheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(2);
+        scheduler.setThreadNamePrefix("lock-renewal-");
+        scheduler.initialize();
+        return scheduler;
+    }
+    
+    @Bean
+    public RedisLockRegistry redisLockRegistry(RedisConnectionFactory connectionFactory,
+                                              TaskScheduler lockRenewalScheduler) {
+        RedisLockRegistry registry = new RedisLockRegistry(connectionFactory, "locks:", 120000);
+        
+        // Watchdog 활성화 (자동 리스 연장)
+        registry.setRenewalTaskScheduler(lockRenewalScheduler);
+        
+        return registry;
+    }
+}
+```
+
+**Watchdog 동작 방식:**
+- 만료 시간의 1/3마다 자동 연장 (예: 120초 락 → 40초마다 연장)
+- 애플리케이션이 살아있는 동안 무한정 연장
+- 락 해제 시 또는 애플리케이션 종료 시 자동 중단
+
+### 판단 기준
+
+**✅ Watchdog 필요:**
+- 작업 시간이 1분 이상 소요될 가능성
+- 외부 시스템 의존성이 높음
+- 데이터량에 따라 처리 시간이 크게 달라짐
+- 네트워크 I/O가 많음
+
+**❌ Watchdog 불필요:**
+- 작업 시간이 10초 이내로 예측 가능
+- 메모리 내 연산 위주
+- 단순한 데이터베이스 CRUD
+- 중복 방지가 주목적
+
+**현재 프로젝트 (주문 처리):** 2초 소요 → Watchdog 불필요 ✅
+
+### 실무 권장사항
+
+**1. 보수적 접근**
+```java
+// 예상 시간의 3-5배로 설정
+예상 작업 시간: 30초 → 락 만료 시간: 120-150초
+```
+
+**2. 모니터링 추가**
+```java
+@DistributedLock(key = "'monitored-job:' + #jobId")
+public void monitoredJob(String jobId) {
+    long startTime = System.currentTimeMillis();
+    try {
+        performTask();
+    } finally {
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.info("Job {} completed in {} ms", jobId, elapsed);
+        
+        // 경고: 락 만료 시간의 80% 이상 소요된 경우
+        if (elapsed > LOCK_EXPIRY * 0.8) {
+            log.warn("Job {} took {}% of lock expiry time", 
+                     jobId, (elapsed * 100 / LOCK_EXPIRY));
+        }
+    }
+}
+```
+
+**3. 단계별 접근**
+- Phase 1: 고정 만료 시간으로 시작하여 운영 데이터 수집
+- Phase 2: 필요한 경우 Watchdog 추가
+- 확신이 서지 않으면 Watchdog 사용 (안전한 선택)
+
+## 멀티 파드 스케줄 잡에서의 활용
+
+### 일반적인 시나리오
+```java
+// Kubernetes 환경의 여러 파드에서 1분마다 실행되는 배치 잡
+@Scheduled(fixedRate = 60000) // 1분 주기
+@DistributedLock(
+    key = "'daily-report'",
+    waitTime = 2000L  // 이미 실행 중이면 2초 후 포기
+)
+public void generateDailyReport() {
+    // 작업 시간: 보통 30초, 최대 5분 (데이터량에 따라 변동)
+    performReportGeneration();
+}
+```
+
+### 고정 만료 시간의 문제점
+
+**문제 1: 만료 시간을 길게 설정 (10분)**
+```
+Pod-1: 30초만에 작업 완료 → 락은 10분간 유지
+Pod-2, 3, 4: 9분 30초 동안 불필요하게 대기 😢
+```
+
+**문제 2: 만료 시간을 짧게 설정 (2분)**
+```
+Pod-1: 5분 작업 중 → 2분 후 락 만료
+Pod-2: 락 획득하여 동시 실행 → 데이터 충돌 위험 🚨
+```
+
+### Watchdog 솔루션
+
+**설정:**
+```java
+@Bean
+public RedisLockRegistry redisLockRegistry(RedisConnectionFactory factory,
+                                          TaskScheduler scheduler) {
+    RedisLockRegistry registry = new RedisLockRegistry(factory, "jobs:", 300000);
+    registry.setRenewalTaskScheduler(scheduler); // Watchdog 활성화
+    return registry;
+}
+```
+
+**동작 방식:**
+- ✅ **작업 완료 시**: 즉시 락 해제 → 다음 파드가 바로 실행 가능
+- ✅ **장시간 작업**: Watchdog가 자동 연장 → 안전하게 완료까지 보호
+- ✅ **중복 방지**: 한 번에 하나의 파드에서만 실행
+
+### 실제 동작 예시
+
+**빠른 완료 시나리오 (30초):**
+```
+00:00:00 Pod-1: 락 획득, 작업 시작
+00:00:30 Pod-1: 작업 완료, 락 즉시 해제 ✅
+00:01:00 Pod-2: 새로운 스케줄, 락 획득 성공 ✅
+```
+
+**긴 작업 시나리오 (5분):**
+```
+00:00:00 Pod-1: 락 획득, 작업 시작
+00:01:00 Pod-2: 락 시도 → 2초 후 포기 ✅
+00:02:00 Pod-3: 락 시도 → 2초 후 포기 ✅  
+00:03:00 Pod-1: Watchdog 자동 연장 (계속 작업)
+00:05:00 Pod-1: 작업 완료, 락 해제 ✅
+00:05:00 이후: 다른 파드가 즉시 실행 가능
+```
+
+### 권장 설정
+
+**스케줄 잡 최적화:**
+```java
+@DistributedLock(
+    key = "'job:' + #jobName",
+    waitTime = 1000L,  // 짧게 설정 (빠른 포기)
+    failureMessage = "작업이 이미 실행 중입니다"
+)
+```
+
+**로깅 추가:**
+```java
+@Scheduled(fixedRate = 60000)
+@DistributedLock(key = "'daily-batch'", waitTime = 2000L)
+public void dailyBatch() {
+    String podName = System.getenv("HOSTNAME");
+    log.info("배치 작업 시작 - Pod: {}", podName);
+    
+    try {
+        performBatch();
+        log.info("배치 작업 완료 - Pod: {}", podName);
+    } catch (Exception e) {
+        log.error("배치 작업 실패 - Pod: {}", podName, e);
+        throw e;
+    }
+}
+```
+
+### 핵심 장점
+
+✅ **완벽한 중복 방지**: 여러 파드 중 하나에서만 실행
+✅ **효율적인 자원 활용**: 작업 완료 즉시 다음 실행 가능  
+✅ **장시간 작업 보호**: 예상보다 오래 걸려도 안전
+✅ **운영 안정성**: 예측 불가능한 작업 시간에도 대응
+
+**결론**: 멀티 파드 스케줄 잡에서는 Watchdog 사용이 최적의 선택입니다! 🎯
 
 ---
 *이 문서는 학습 과정에서 지속적으로 업데이트됩니다.*
