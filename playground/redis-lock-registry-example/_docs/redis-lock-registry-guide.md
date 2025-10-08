@@ -194,7 +194,13 @@ curl -X POST "http://localhost:8080/api/orders/process?userId=user1&productId=pr
 curl "http://localhost:8080/api/orders/test-concurrent?userId=user1&productId=product1"
 ```
 
-### 3. 로그 확인 포인트
+### 3. HTTP 클라이언트 테스트 (IntelliJ)
+`_http/order-api.http` 파일 사용:
+- 단일 주문 처리 테스트
+- 동시성 테스트 (같은 락 키 vs 다른 락 키)
+- 다양한 사용자/상품 조합 테스트
+
+### 4. 로그 확인 포인트
 - `락 획득 완료`: 분산 락이 성공적으로 획득됨
 - `락 해제 완료`: 작업 완료 후 락이 정상 해제됨
 - 동시 요청 시 순차적으로 처리되는지 확인
@@ -207,10 +213,62 @@ curl "http://localhost:8080/api/orders/test-concurrent?userId=user1&productId=pr
 - [x] REST API 및 동시성 테스트 구현
 
 ## 주요 학습 포인트
-1. **Lock 패턴**: `try-finally`로 안전한 락 관리
-2. **락 키 설계**: 비즈니스 로직에 맞는 고유 키 생성
-3. **동시성 제어**: 같은 리소스에 대한 동시 접근 방지
-4. **자동 만료**: 60초 후 자동 해제로 데드락 방지
+
+### 1. Lock 패턴
+**try-finally를 통한 안전한 락 관리**
+```java
+try {
+    lock.lock();
+    // 비즈니스 로직
+} finally {
+    lock.unlock();  // 반드시 실행됨
+}
+```
+
+### 2. 락 키 설계
+**비즈니스 로직에 맞는 고유 키 생성**
+- `"order:" + userId + ":" + productId` - 사용자별, 상품별 분리
+- 너무 세분화하면 락의 효과 감소, 너무 광범위하면 성능 저하
+
+### 3. 동시성 제어
+**같은 리소스에 대한 동시 접근 방지**
+- 같은 락 키: 순차 처리 (예: 같은 사용자의 같은 상품 주문)
+- 다른 락 키: 병렬 처리 (예: 다른 사용자 또는 다른 상품)
+
+### 4. 자동 만료
+**60초 후 자동 해제로 데드락 방지**
+- 애플리케이션 장애 시에도 락이 영구적으로 남지 않음
+- 적절한 만료 시간 설정이 중요 (너무 짧으면 작업 중 해제, 너무 길면 복구 지연)
+
+### 5. InterruptedException 처리
+**스레드 인터럽트 상황에 대한 적절한 처리**
+
+```java
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt();  // 인터럽트 상태 복원
+    log.error("주문 처리 중 인터럽트 발생", e);
+    return "주문 처리 실패: 인터럽트";
+}
+```
+
+**InterruptedException이 발생하는 상황:**
+- **Thread.sleep() 중**: 비즈니스 로직 실행 중 스레드 인터럽트
+- **애플리케이션 종료**: Spring Boot 종료 시 실행 중인 작업들 정리
+- **스레드 풀 종료**: ExecutorService.shutdownNow() 호출 시
+- **명시적 인터럽트**: 다른 스레드에서 interrupt() 호출
+
+**Thread.currentThread().interrupt() 호출 이유:**
+- InterruptedException catch 시 인터럽트 플래그가 자동으로 클리어됨
+- 상위 코드나 스레드 풀이 인터럽트 상태를 확인할 수 있도록 플래그 복원
+- Graceful shutdown을 위한 협력적 스레드 관리
+
+**실제 시나리오 예시:**
+```
+1. 주문 처리 시작 (2초 소요 예정)
+2. 1초 후 애플리케이션 종료 명령
+3. Thread.sleep(2000) 중에 InterruptedException 발생
+4. 인터럽트 상태 복원 후 깔끔하게 종료
+```
 
 ---
 *이 문서는 학습 과정에서 지속적으로 업데이트됩니다.*
