@@ -126,19 +126,179 @@ spring:
 
 ```java
 @Configuration
+@RequiredArgsConstructor
 public class RedisLockConfig {
-    
+
+    private final RedisLockProperties redisLockProperties;
+
     @Bean
     public RedisLockRegistry redisLockRegistry(RedisConnectionFactory redisConnectionFactory) {
-        return new RedisLockRegistry(redisConnectionFactory, "locks:", 60000);
+        RedisLockRegistry registry = new RedisLockRegistry(
+                redisConnectionFactory, 
+                redisLockProperties.getRegistryKey(), 
+                redisLockProperties.getExpireAfter()
+        );
+        
+        // 내부 캐시 용량 설정 (메모리 누수 방지)
+        registry.setCacheCapacity(redisLockProperties.getCacheCapacity());
+        
+        return registry;
     }
 }
 ```
 
 **설정 파라미터 설명:**
 - `redisConnectionFactory`: Spring이 자동 주입하는 Redis 연결 팩토리
-- `"locks:"`: Redis 키 접두사 (락 키가 `locks:order-123` 형태로 저장됨)
-- `60000`: 락 만료 시간 60초 (데드락 방지, 애플리케이션 장애 시 자동 해제)
+- `redisLockProperties.getRegistryKey()`: Redis 키 접두사 (YAML 설정에서 읽음)
+- `redisLockProperties.getExpireAfter()`: 락 만료 시간 (YAML 설정에서 읽음)
+- `registry.setCacheCapacity()`: 내부 캐시 용량 설정 (메모리 관리)
+
+### 5. RedisLockProperties 설정 클래스 (설정 외부화)
+`src/main/java/com/jaesay/redislockregistryexample/config/RedisLockProperties.java`
+
+```java
+@ConfigurationProperties(prefix = "redis.lock")
+@Component
+@Data
+public class RedisLockProperties {
+    
+    private String registryKey = "locks:";      // Redis 키 접두사
+    private long expireAfter = 60000L;          // 락 만료 시간 (밀리초)
+    private int cacheCapacity = 100;            // 내부 캐시 용량
+    private boolean enableWatchdog = false;     // Watchdog 활성화 여부
+    private RedisLockType redisLockType = RedisLockType.SPIN_LOCK;
+    
+    public enum RedisLockType {
+        SPIN_LOCK, PUB_SUB_LOCK
+    }
+}
+```
+
+### 6. 캐시 용량(Cache Capacity) 설정 이해하기 🧠
+
+**🚗 주차장 비유로 쉽게 이해하기:**
+
+RedisLockRegistry는 마치 **아파트 주차장**과 같습니다:
+- **각 락 = 주차된 자동차** (메모리에 저장된 ReentrantLock 객체)
+- **capacity = 주차 공간 총 개수** (최대 저장할 락 객체 수)
+
+#### ❌ capacity 설정 없을 때 (무제한 주차장)
+```java
+// 매일 다른 사람들이 주차 (서로 다른 lockKey 사용)
+redisLockRegistry.obtain("user1-order");   // 🚗 1번 주차
+redisLockRegistry.obtain("user2-order");   // 🚗 2번 주차  
+redisLockRegistry.obtain("user3-order");   // 🚗 3번 주차
+// ... 1000명이 주차하면
+// 결과: 1000대가 영구 주차! 메모리 가득 참 😱
+```
+
+#### ✅ capacity=200 설정 (200대 주차 가능)
+```yaml
+redis:
+  lock:
+    cache-capacity: 200  # 최대 200개 락 객체만 메모리에 보관
+```
+
+```java
+// 1000명이 와도 주차장에는 최대 200대만!
+// 201번째부터는 오래된 차를 빼고 새 차 주차 (LRU 방식)
+```
+
+**실제 효과:**
+- ✅ **메모리 사용량 예측 가능**: 최대 200개 × ReentrantLock 크기
+- ✅ **자주 사용하는 락**: 빠른 접근 (캐시 히트)
+- ⚠️ **가끔 사용하는 락**: 새로 생성 필요 (캐시 미스)
+
+#### 권장 설정값 가이드
+
+**작은 서비스 (capacity=50-100)**
+```java
+// 하루 주문 100건, 동시 처리 10건
+// 락 키 패턴이 단순: "user1-order", "user2-order"
+```
+
+**중간 서비스 (capacity=200-500)** ← **현재 우리 설정**
+```java
+// 하루 주문 1000건, 동시 처리 50건  
+// 락 키 패턴: "order:user1:product1", "batch:daily:2025-01-09"
+```
+
+**대형 서비스 (capacity=500-1000)**
+```java
+// 하루 주문 10만건, 동시 처리 500건
+// 복잡한 락 키: "order:region:seoul:user123:product456"
+```
+
+**🎯 핵심 포인트:**
+- capacity는 **Redis 락이 아닌 JVM 내부 캐시** 크기 제한
+- **메모리 누수 방지**를 위한 필수 설정 (Spring Integration 5.5.6+)
+- 적절한 값 설정으로 **성능과 메모리 효율성** 균형 유지
+
+#### 🤔 캐시 동작 Q&A
+
+**Q: 캐시가 꽉 차서 락이 제거되면 기존 락은 어떻게 되나요?**
+
+**A: 현재 사용 중인 락은 절대 제거되지 않습니다!**
+
+**캐시 히트 (기존 객체 재사용):**
+```java
+// 1. 주차장에서 내 차 찾기
+Lock lock = redisLockRegistry.obtain("user1-order"); // 캐시에서 기존 ReentrantLock 발견!
+
+// 2. 차 시동 걸기 (이때 Redis 접근)
+lock.lock(); // Redis에 "locks:user1-order" 키로 락 획득 요청
+```
+
+**캐시 미스 (새 객체 생성):**
+```java
+// 1. 주차장에서 내 차 못 찾음
+Lock lock = redisLockRegistry.obtain("user999-order"); // 캐시에 없음!
+
+// 2. 새 차 구입해서 주차 (Redis 접근 아님!)
+// → 새로운 ReentrantLock 객체를 JVM 메모리에 생성
+// → 캐시에 저장 (용량 초과 시 사용 완료된 것만 제거)
+
+// 3. 새 차 시동 걸기 (이때 Redis 접근)
+lock.lock(); // Redis에 "locks:user999-order" 키로 락 획득 요청
+```
+
+**🚨 안전한 캐시 제거 정책:**
+- ✅ **사용 완료된 락**: 제거 가능 (unlock() 호출 후)
+- ❌ **사용 중인 락**: 절대 제거 안됨 (lock() 상태)
+- ✅ **재접근**: 새 ReentrantLock 객체 생성 (Redis 락 상태와 무관)
+
+**올바른 사용 패턴:**
+```java
+// ✅ 안전한 코드
+Lock lock = redisLockRegistry.obtain("user1-order");
+try {
+    lock.lock();    // Redis 락 획득
+    // 비즈니스 로직...
+} finally {
+    lock.unlock();  // Redis 락 해제 + 캐시 제거 가능 상태로 변경
+}
+```
+
+**잘못된 사용 패턴:**
+```java
+// ❌ 위험한 코드: unlock()을 안 함
+Lock lock = redisLockRegistry.obtain("user1-order");
+lock.lock();
+// 비즈니스 로직...
+// unlock() 호출 안함! 😱
+
+// 결과:
+// 1. Redis: 60초 후 자동 만료
+// 2. JVM 캐시: ReentrantLock 객체가 영구 점유
+// 3. 캐시에서 제거 안됨 → 메모리 누수!
+```
+
+**Redis vs JVM 캐시 독립성:**
+| 구분 | Redis 락 상태 | JVM 캐시 상태 | 설명 |
+|------|-------------|-------------|------|
+| **데이터** | 분산 락 키-값 | ReentrantLock 객체 | 완전히 별개 |
+| **만료** | 60초 자동 만료 | capacity 기반 LRU | 독립적 관리 |
+| **제거 조건** | 시간 또는 unlock() | 사용 완료 + 용량 초과 | 서로 무관 |
 
 ## 실제 사용 예제
 
@@ -710,6 +870,277 @@ public void dailyBatch() {
 ✅ **운영 안정성**: 예측 불가능한 작업 시간에도 대응
 
 **결론**: 멀티 파드 스케줄 잡에서는 Watchdog 사용이 최적의 선택입니다! 🎯
+
+## RedisLockRegistry 내부 동작 원리
+
+### 기본 아키텍처 - 2단계 락킹 시스템
+
+```
+🏠 JVM 내부           🌐 Redis (분산)
+┌─────────────┐      ┌──────────────┐
+│ ReentrantLock│ ──▶ │ String 키-값  │
+│ (로컬 보호)   │      │ (글로벌 보호)   │
+└─────────────┘      └──────────────┘
+```
+
+**2단계가 필요한 이유:**
+- **1단계 (JVM 내)**: 같은 서버 내 스레드들끼리 경쟁 방지
+- **2단계 (Redis)**: 서로 다른 서버들끼리 경쟁 방지
+
+### Redis에 실제 저장되는 데이터
+
+```redis
+# 락 획득 시 Redis에 저장되는 형태
+SET "locks:order:user1:product1" "uuid-12345" PX 60000
+
+# 구조:
+# 키: {registryKey}:{lockKey}
+# 값: 고유한 클라이언트 ID (UUID)  
+# PX: 만료 시간 (밀리초)
+```
+
+### 락 획득 과정 (Step by Step)
+
+**1단계: 로컬 락 시도**
+```java
+ReentrantLock localLock = locks.get(lockKey);
+localLock.lock(); // JVM 내 스레드 동기화
+```
+
+**2단계: Redis Lua 스크립트 실행**
+```lua
+-- OBTAIN_LOCK 스크립트
+local lockClientId = redis.call('GET', KEYS[1])
+if not lockClientId then
+    -- 락이 없으면 획득
+    redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[2])
+    return true
+elseif lockClientId == ARGV[1] then
+    -- 내 락이면 만료시간 갱신 (재진입)
+    redis.call('PEXPIRE', KEYS[1], ARGV[2])
+    return true
+else
+    -- 다른 클라이언트의 락
+    return false
+end
+```
+
+**3단계: 결과 처리**
+- ✅ **성공**: 락 획득 완료
+- ❌ **실패**: 100ms 대기 후 재시도 (SPIN_LOCK) 또는 PUB_SUB 대기
+
+### Lua 스크립트를 사용하는 이유
+
+#### 락 획득 시 문제 (상대적으로 덜 심각)
+
+**❌ Lua 스크립트 없이 하면:**
+```redis
+# Thread-1과 Thread-2가 동시에 실행
+GET "locks:order:user1:product1"              # 둘 다 null 받음
+SET "locks:order:user1:product1" "thread1"    # Thread-1 설정
+SET "locks:order:user1:product1" "thread2"    # Thread-2가 덮어씀! 🚨
+```
+
+**✅ SET NX PX로도 해결 가능:**
+```redis
+# 원자적 락 획득 (Lua 스크립트 없이도 가능)
+SET "locks:order:user1:product1" "client-uuid" NX PX 60000
+# OK → 락 획득 성공
+# nil → 이미 존재하므로 실패
+```
+
+#### 락 해제 시 치명적 문제 🚨
+
+**❌ 단순 DELETE의 위험:**
+```redis
+# Thread-1이 락 해제 시도
+DEL "locks:order:user1:product1"  # 누구의 락인지 확인 없이 삭제!
+```
+
+**🔥 치명적인 경쟁 조건 시나리오:**
+```
+시간 순서:
+00:00:00 Thread-1: SET "lock" "uuid-111" NX PX 5000  ✅
+00:00:01 Thread-1: 작업 시작 (4초 예상)
+00:00:05 Redis: 락이 5초 만료로 자동 삭제 
+00:00:05 Thread-2: SET "lock" "uuid-222" NX PX 5000  ✅ (새 락 획득)
+00:00:06 Thread-1: 작업 완료, DEL "lock" 실행
+         → Thread-2의 락을 삭제! 🔥
+00:00:06 Thread-3: SET "lock" "uuid-333" NX PX 5000  ✅ (또 다른 락 획득)
+결과: Thread-2와 Thread-3가 동시에 같은 자원 접근!
+```
+
+**✅ Lua 스크립트로 안전한 해제:**
+```lua
+-- 소유권 검증 후 삭제 (원자적 실행)
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    redis.call('UNLINK', KEYS[1])
+    return true  -- 내 락이므로 삭제 성공
+else
+    return false -- 내 락이 아니므로 삭제하지 않음
+end
+```
+
+#### 분리된 명령어 vs 원자적 스크립트
+
+**❌ 위험한 분리 방식:**
+```redis
+GET "locks:order:user1:product1"    # 결과: "my-uuid"
+# ⚠️ 이 사이에 락 만료 + 다른 클라이언트 획득 가능!
+DEL "locks:order:user1:product1"    # 다른 클라이언트의 락 삭제!
+```
+
+**✅ 원자적 Lua 스크립트:**
+```lua
+-- GET + 비교 + DELETE가 원자적으로 실행됨
+local current = redis.call('GET', KEYS[1])
+if current == ARGV[1] then
+    redis.call('UNLINK', KEYS[1])
+    return true
+end
+return false
+```
+
+#### RedisLockRegistry에서 Lua 스크립트가 필요한 경우들
+
+**1. 락 획득 (재진입 락 지원)**
+```lua
+local current = redis.call('GET', KEYS[1])
+if not current then
+    redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[2])
+    return true
+elseif current == ARGV[1] then
+    redis.call('PEXPIRE', KEYS[1], ARGV[2])  -- 재진입: 만료시간 갱신
+    return true
+else
+    return false
+end
+```
+
+**2. 락 해제 (소유권 검증 필수)**
+```lua
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    redis.call('UNLINK', KEYS[1])
+    return true
+else
+    return false
+end
+```
+
+**3. Watchdog 갱신 (소유권 검증 필수)**
+```lua
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    redis.call('PEXPIRE', KEYS[1], ARGV[2])
+    return true
+else
+    return false  -- 내 락이 아니므로 갱신하지 않음
+end
+```
+
+#### 핵심 정리
+
+| 작업 | SET NX 사용 가능? | Lua 스크립트 필요? | 이유 |
+|------|------------------|-------------------|------|
+| **락 획득** | ✅ 가능 | △ 재진입 락을 위해 권장 | 원자적 SET NX PX로 충분 |
+| **락 해제** | ❌ 불가능 | ✅ 필수 | 소유권 검증 없이는 위험 |
+| **Watchdog 갱신** | ❌ 불가능 | ✅ 필수 | 소유권 검증 필요 |
+
+**결론**: 락 해제와 갱신에서의 소유권 검증이 Lua 스크립트를 사용하는 핵심 이유입니다!
+
+### Watchdog 동작 메커니즘
+
+```
+⏰ 락 획득 후 TaskScheduler 시작
+├── 20초마다 실행 (60초 락의 1/3 간격)
+├── RENEW Lua 스크립트:
+│   ```lua
+│   if redis.call('GET', KEYS[1]) == ARGV[1] then
+│       redis.call('PEXPIRE', KEYS[1], ARGV[2])
+│       return true
+│   end
+│   return false
+│   ```
+└── 내 락이 맞으면 60초로 재연장
+```
+
+**Watchdog 특징:**
+- 만료 시간의 1/3 간격으로 자동 연장
+- 락 소유권 검증 후 연장 (안전성)
+- unlock() 또는 JVM 종료 시 자동 중단
+
+### 락 해제 과정
+
+**1단계: 로컬 검증**
+```java
+if (!localLock.isHeldByCurrentThread()) {
+    throw new IllegalMonitorStateException();
+}
+```
+
+**2단계: Redis에서 해제**
+```lua
+-- UNLINK_UNLOCK 스크립트
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    redis.call('UNLINK', KEYS[1])
+    return true
+end
+return false
+```
+
+**3단계: 로컬 락 해제**
+```java
+localLock.unlock();
+```
+
+### 실제 Redis 명령어 흐름
+
+**락 생명주기 동안 실행되는 명령어들:**
+
+```redis
+# 1. 락 획득
+EVAL "OBTAIN_LOCK 스크립트" 1 "locks:order:user1:product1" "uuid-abc123" 60000
+
+# 2. Watchdog 연장 (20초마다)
+EVAL "RENEW 스크립트" 1 "locks:order:user1:product1" "uuid-abc123" 60000
+
+# 3. 락 해제  
+EVAL "UNLINK_UNLOCK 스크립트" 1 "locks:order:user1:product1" "uuid-abc123"
+```
+
+### 내부 동작 실습하기
+
+**Redis 명령어 모니터링:**
+```bash
+# 터미널 1: Redis 명령어 실시간 모니터링
+redis-cli -h localhost -p 6379 -a 1a2b3c4d5e!@ monitor
+
+# 터미널 2: API 호출
+curl -X POST "http://localhost:8080/api/orders/process?userId=user1&productId=product1"
+```
+
+**관찰 포인트:**
+- `EVAL` 명령어로 Lua 스크립트 실행
+- `locks:` 접두사가 붙은 키 생성/삭제
+- PX 옵션으로 만료시간 설정
+- Watchdog 연장 시 `PEXPIRE` 명령어
+
+### 주요 설계 원칙
+
+**1. 원자성 (Atomicity)**
+- 모든 중요한 연산을 Lua 스크립트로 처리
+- GET-SET 사이의 경쟁 조건 완전 제거
+
+**2. 재진입 가능 (Reentrant)**
+- 같은 클라이언트는 동일한 락을 여러 번 획득 가능
+- UUID를 통한 소유권 검증
+
+**3. 안전성 (Safety)**
+- 락 만료 시 자동 해제로 데드락 방지
+- 소유권 검증으로 잘못된 해제 방지
+
+**4. 효율성 (Efficiency)**
+- 로컬 ReentrantLock으로 JVM 내 오버헤드 최소화
+- PUB_SUB 모드로 폴링 오버헤드 제거 가능
 
 ---
 *이 문서는 학습 과정에서 지속적으로 업데이트됩니다.*

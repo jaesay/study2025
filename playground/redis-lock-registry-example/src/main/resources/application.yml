@@ -12,3 +12,12 @@ spring:
                     max-active: 8
                     max-idle: 8
                     min-idle: 0
+
+# Redis Lock 설정
+redis:
+    lock:
+        registry-key: "app-locks:"
+        expire-after: 60000          # 60초 (밀리초)
+        cache-capacity: 200          # 내부 캐시 용량 (락 객체 최대 200개)
+        enable-watchdog: false       # Watchdog 비활성화
+        redis-lock-type: "SPIN_LOCK" # 폴링 방식
